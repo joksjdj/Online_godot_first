@@ -1,7 +1,5 @@
 use server::{};
 
-use code::{connect_db, ActiveGame, CurrentGame};
-
 use actix_files::Files;
 use actix_web::{get, web, App, HttpServer, Responder, Error, HttpResponse};
 
