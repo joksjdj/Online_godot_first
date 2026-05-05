@@ -1,10 +1,13 @@
 use server::{connect_db, Players, LoginRequest};
 
-use actix_web::{post, web, App, HttpServer, Responder, Error, HttpResponse};
+use actix_web::{post, web, App, HttpServer, Responder, Error};
+use actix_cors::Cors;
 
 use local_ip_address::local_ip;
 
 use sqlx::{MySqlPool, query_as};
+
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 #[post("/login")]
 async fn login(
@@ -13,7 +16,12 @@ async fn login(
     ) -> Result<impl Responder, Error> {
     
     let username = &credentials.username;
-    let password = &credentials.password;
+    
+    let unhashed_password = &credentials.password;
+    let mut hasher = DefaultHasher::new();
+    unhashed_password.hash(&mut hasher);
+
+    let password = hasher.finish().to_string();
     
     println!("Trying to get players {:?} {:?}", username, password);
 
@@ -31,14 +39,19 @@ async fn login(
     Ok(web::Json(rows))
 }
 
-#[post("/signin")]
-async fn signin(
+#[post("/signup")]
+async fn signup(
     credentials: web::Json<LoginRequest>,
     pool: web::Data<MySqlPool>
     ) -> Result<impl Responder, Error> {
     
     let username = &credentials.username;
-    let password = &credentials.password;
+
+    let unhashed_password = &credentials.password;
+    let mut hasher = DefaultHasher::new();
+    unhashed_password.hash(&mut hasher);
+
+    let password = hasher.finish().to_string();
     
     println!("Trying to get players {:?} {:?}", username, password);
 
@@ -82,8 +95,14 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .wrap(
+                Cors::default()
+                    .allow_any_origin()
+                    .allow_any_method()
+                    .allow_any_header()
+            )
             .service(login)
-            .service(signin)
+            .service(signup)
     })
         .bind("0.0.0.0:8080")?
         .run()
