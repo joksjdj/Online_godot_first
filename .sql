@@ -33,40 +33,34 @@ or
 to use mysql
 */
 
+/* This is optional */
 SET GLOBAL validate_password.policy = LOW;
 SET GLOBAL validate_password.length = 1;
 
 
-CREATE DATABASE card_game;
+CREATE DATABASE first_godot_project;
 
 /*
 test is a placeholder and can be changed.
 IDENTIFIED BY 'your_password'
 */
-CREATE USER 'test'@'%' IDENTIFIED BY 'test';
-GRANT ALL PRIVILEGES ON card_game.* TO 'test'@'%';
+CREATE USER 'test'@'%' IDENTIFIED BY 'test'; 
+GRANT ALL PRIVILEGES ON first_godot_project.* TO 'test'@'%';
 FLUSH PRIVILEGES;
 
-USE card_game;
-
-CREATE TABLE active_games (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    lobby_name VARCHAR(50) NOT NULL,
-    lobby_password VARCHAR(50),
-
-    playing INT DEFAULT 0,
-    placed_cards JSON,
-    untouched_cards JSON
-);
-DESCRIBE active_games;
+USE first_godot_project;
 
 CREATE TABLE players (
-    id INT DEFAULT 0,
-    name VARCHAR(50) NOT NULL,
-    ip_address VARCHAR(50) NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(50) NOT NULL,
 
-    game_id INT NOT NULL,
-    FOREIGN KEY (game_id) REFERENCES active_games(id),
-    cards JSON
+    highscore INT DEFAULT 0,
+    last_game INT DEFAULT 0
 );
 DESCRIBE players;
+
+
+/* Testing */
+INSERT INTO players (username, password)
+VALUES ("test", "test");

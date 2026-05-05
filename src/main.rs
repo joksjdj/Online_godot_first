@@ -1,54 +1,69 @@
-use server::{};
+use server::{connect_db, Players, LoginRequest};
 
-use actix_files::Files;
-use actix_web::{get, web, App, HttpServer, Responder, Error, HttpResponse};
+use actix_web::{post, web, App, HttpServer, Responder, Error, HttpResponse};
 
 use local_ip_address::local_ip;
 
 use sqlx::{MySqlPool, query_as};
 
-use std::fs;
-
-#[get("/page/{number}/")]
-async fn page(
-    page: web::Path<String>,
+#[post("/login")]
+async fn login(
+    credentials: web::Json<LoginRequest>,
     pool: web::Data<MySqlPool>
     ) -> Result<impl Responder, Error> {
+    
+    let username = &credentials.username;
+    let password = &credentials.password;
+    
+    println!("Trying to get players {:?} {:?}", username, password);
 
-    let offset: i64 = page.parse().unwrap();
-
-    let rows = query_as::<_, ActiveGame>(
-        "SELECT id, lobby_name, playing FROM active_games LIMIT 5 OFFSET ?"
+    let rows = query_as::<_, Players>(
+        "SELECT id, username, highscore, last_game FROM players WHERE username = ? AND password = ?"
     )
-        .bind((offset - 1) * 5)
-        .fetch_all(&**pool)
+        .bind(username.clone())
+        .bind(password.clone())
+        .fetch_one(&**pool)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
-    println!("OFFSET: {:?}\nResult: {:?}", (offset - 1) * 5, rows);
+    println!("Result: {:?}", rows);
 
     Ok(web::Json(rows))
 }
 
-#[get("/lobby/{id}/")]
-async fn lobby(
-    id: web::Path<i64>,
+#[post("/signin")]
+async fn signin(
+    credentials: web::Json<LoginRequest>,
     pool: web::Data<MySqlPool>
-    ) -> impl Responder {
+    ) -> Result<impl Responder, Error> {
     
-    let rows = query_as::<_, CurrentGame>(
-        "SELECT * FROM active_games WHERE id = ?"
+    let username = &credentials.username;
+    let password = &credentials.password;
+    
+    println!("Trying to get players {:?} {:?}", username, password);
+
+    sqlx::query(
+        "INSERT INTO players (username, password)
+        VALUES (?, ?)"
     )
-        .bind(*id)
+        .bind(username.clone())
+        .bind(password.clone())
+        .execute(&**pool)
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
+        
+    let rows = query_as::<_, Players>(
+        "SELECT id, username, highscore, last_game FROM players WHERE username = ? AND password = ?"
+    )
+        .bind(username.clone())
+        .bind(password.clone())
         .fetch_one(&**pool)
-        .await;
+        .await
+        .map_err(actix_web::error::ErrorInternalServerError)?;
 
     println!("Result: {:?}", rows);
 
-    let html = fs::read_to_string("static/lobby.html")
-        .expect("Failed to read HTML file");
-    HttpResponse::Ok()
-        .body(html)
+    Ok(web::Json(rows))
 }
 
 #[actix_web::main]
@@ -67,10 +82,8 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
-            .service(page)
-            .service(lobby)
-            .service(Files::new("/static", "static").show_files_listing())
-            .service(Files::new("/", "./static").index_file("index.html"))
+            .service(login)
+            .service(signin)
     })
         .bind("0.0.0.0:8080")?
         .run()
