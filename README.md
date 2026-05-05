@@ -14,6 +14,7 @@
 # Git and GitHub
 error: src refspec main does not match any
 I copied this into copilot and found out that some older git versions uses master instead of main.
+I also forgot to clean out cargo in some of the commits, creating unnececary big files.
 
 
 # SQL setup
@@ -28,5 +29,10 @@ https://github.com/joksjdj/Prosjekt_kortspill
 
 The server is http based due to Godot limitations.
 It uses post for security purposes.
+I created a hashing function using rust standard std crate and fixed cors policy issues.
 
+The cors issue was fixed by copilot, I simply copied the error message and fed it to it.
 
+Prompts:
+- Access to fetch at 'http://alexanderpi:8080/signup' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+- toml dependency
