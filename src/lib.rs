@@ -1,6 +1,7 @@
 use sqlx::{MySqlPool, mysql::MySqlPoolOptions, FromRow};
 
 use std::time::Instant;
+use std::hash::{DefaultHasher, Hash, Hasher};
 
 use serde::{Serialize, Deserialize};
 
@@ -39,4 +40,14 @@ pub struct Players {
 pub struct LoginRequest {
     pub username: String,
     pub password: String,
+}
+
+pub fn hash_string(unhashed_password: String) -> String {
+
+    let mut hasher = DefaultHasher::new();
+    unhashed_password.hash(&mut hasher);
+
+    let password = hasher.finish().to_string();
+
+    password
 }

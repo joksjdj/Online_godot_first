@@ -1,4 +1,4 @@
-use server::{connect_db, Players, LoginRequest};
+use server::{connect_db, Players, LoginRequest, hash_string};
 
 use actix_web::{post, web, App, HttpServer, Responder, Error};
 use actix_cors::Cors;
@@ -7,8 +7,6 @@ use local_ip_address::local_ip;
 
 use sqlx::{MySqlPool, query_as};
 
-use std::hash::{DefaultHasher, Hash, Hasher};
-
 #[post("/login")]
 async fn login(
     credentials: web::Json<LoginRequest>,
@@ -16,12 +14,7 @@ async fn login(
     ) -> Result<impl Responder, Error> {
     
     let username = &credentials.username;
-    
-    let unhashed_password = &credentials.password;
-    let mut hasher = DefaultHasher::new();
-    unhashed_password.hash(&mut hasher);
-
-    let password = hasher.finish().to_string();
+    let password = hash_string(credentials.password.clone());
     
     println!("Trying to get players {:?} {:?}", username, password);
 
@@ -46,12 +39,7 @@ async fn signup(
     ) -> Result<impl Responder, Error> {
     
     let username = &credentials.username;
-
-    let unhashed_password = &credentials.password;
-    let mut hasher = DefaultHasher::new();
-    unhashed_password.hash(&mut hasher);
-
-    let password = hasher.finish().to_string();
+    let password = hash_string(credentials.password.clone());
     
     println!("Trying to get players {:?} {:?}", username, password);
 
