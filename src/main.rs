@@ -1,6 +1,6 @@
-use server::{connect_db, Players, LoginRequest, hash_string};
+use server::{connect_db, Players, LoginRequest, hash_string, check_if_user_exists};
 
-use actix_web::{post, web, App, HttpServer, Responder, Error};
+use actix_web::{post, web, App, HttpServer, Responder, Error, HttpResponse};
 use actix_cors::Cors;
 
 use local_ip_address::local_ip;
@@ -15,21 +15,32 @@ async fn login(
     
     let username = &credentials.username;
     let password = hash_string(credentials.password.clone());
-    
-    println!("Trying to get players {:?} {:?}", username, password);
+
+    println!("Trying to get players {:?}", username);
 
     let rows = query_as::<_, Players>(
         "SELECT id, username, highscore, last_game FROM players WHERE username = ? AND password = ?"
     )
         .bind(username.clone())
         .bind(password.clone())
-        .fetch_one(&**pool)
+        .fetch_optional(&**pool)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     println!("Result: {:?}", rows);
 
-    Ok(web::Json(rows))
+    if rows.is_none() {
+        let user_exists = check_if_user_exists(&**pool, username.clone()).await;
+
+        if user_exists == true {
+            Ok(HttpResponse::BadRequest().content_type("text/plain").body("Wrong password"))
+        } else {
+            Ok(HttpResponse::BadRequest().content_type("text/plain").body("user doesnt exist"))
+        }
+        
+    } else {
+        Ok(HttpResponse::Ok().json(rows))
+    }
 }
 
 #[post("/signup")]
@@ -43,28 +54,47 @@ async fn signup(
     
     println!("Trying to get players {:?} {:?}", username, password);
 
-    sqlx::query(
+    let insert = match sqlx::query!(
         "INSERT INTO players (username, password)
-        VALUES (?, ?)"
+        VALUES (?, ?)",
+        username,
+        password
     )
-        .bind(username.clone())
-        .bind(password.clone())
-        .execute(&**pool)
-        .await
-        .map_err(actix_web::error::ErrorInternalServerError)?;
-        
+    .execute(&**pool)
+    .await
+    {
+        Ok(res) => res,
+        Err(e) => {
+            // MySQL duplicate entry error code
+            if let Some(db_err) = e.as_database_error() {
+                if let Some(mysql_err) = db_err.try_downcast_ref::<sqlx::mysql::MySqlDatabaseError>() {
+                    if mysql_err.number() == 1062 {
+                        return Ok(
+                            HttpResponse::BadRequest()
+                                .content_type("text/plain")
+                                .body("user already exists")
+                        );
+                    }
+                }
+            }
+            return Ok(
+                HttpResponse::InternalServerError()
+                    .content_type("text/plain")
+                    .body("database error")
+            );
+        }
+    };
     let rows = query_as::<_, Players>(
-        "SELECT id, username, highscore, last_game FROM players WHERE username = ? AND password = ?"
+        "SELECT id, username, highscore, last_game FROM players WHERE id = ?"
     )
-        .bind(username.clone())
-        .bind(password.clone())
-        .fetch_one(&**pool)
+        .bind(insert.last_insert_id())
+        .fetch_optional(&**pool)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     println!("Result: {:?}", rows);
-
-    Ok(web::Json(rows))
+    return Ok(HttpResponse::Ok().json(rows))
+    
 }
 
 #[actix_web::main]

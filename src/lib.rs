@@ -30,7 +30,7 @@ pub async fn connect_db() -> Result<MySqlPool, sqlx::Error> {
 
 #[derive(Debug, FromRow, Serialize, Deserialize)]
 pub struct Players {
-    id: i64,
+    pub id: i64,
     username: String,
     highscore: i64,
     last_game: i64,
@@ -50,4 +50,23 @@ pub fn hash_string(unhashed_password: String) -> String {
     let password = hasher.finish().to_string();
 
     password
+}
+
+pub async fn check_if_user_exists(pool: &MySqlPool, username: String) -> bool {
+    let find_user = sqlx::query(
+            "SELECT username FROM players WHERE username = ?"
+        )
+            .bind(username.clone())
+            .fetch_optional(pool)
+            .await
+            .expect("DB error");
+
+    let user_exists: bool;
+    if find_user.is_none() {
+        user_exists = false;
+    } else {
+        user_exists = true;
+    }
+
+    return user_exists
 }

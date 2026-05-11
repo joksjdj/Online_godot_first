@@ -5,7 +5,7 @@
 - Connect DB to a server "done"
 - Give server ability to insert and fetch rows "done"
 - Create hashing system "done"
-- Improve unique username handling
+- Improve unique username handling "done"
 - Connect server to game
 - Create login for game
 - Create leaderboard
