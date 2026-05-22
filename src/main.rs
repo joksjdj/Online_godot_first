@@ -1,4 +1,7 @@
-use server::{connect_db, Players, LoginRequest, hash_string, check_if_user_exists};
+use server::{
+    connect_db, Players, LoginRequest, hash_string, check_if_user_exists, 
+    start_ws_server
+};
 
 use actix_web::{post, web, App, HttpServer, Responder, Error, HttpResponse};
 use actix_cors::Cors;
@@ -19,7 +22,7 @@ async fn login(
     println!("Trying to get players {:?}", username);
 
     let rows = query_as::<_, Players>(
-        "SELECT id, username, highscore, last_game FROM players WHERE username = ? AND password = ?"
+        "SELECT id, username, created_at, highscore, last_game FROM players WHERE username = ? AND password = ?"
     )
         .bind(username.clone())
         .bind(password.clone())
@@ -33,9 +36,9 @@ async fn login(
         let user_exists = check_if_user_exists(&**pool, username.clone()).await;
 
         if user_exists == true {
-            Ok(HttpResponse::BadRequest().content_type("text/plain").body("Wrong password"))
+            Ok(HttpResponse::BadRequest().content_type("text/plain").body("Wrong password!"))
         } else {
-            Ok(HttpResponse::BadRequest().content_type("text/plain").body("user doesnt exist"))
+            Ok(HttpResponse::BadRequest().content_type("text/plain").body("Username not found!"))
         }
         
     } else {
@@ -72,20 +75,20 @@ async fn signup(
                         return Ok(
                             HttpResponse::BadRequest()
                                 .content_type("text/plain")
-                                .body("user already exists")
+                                .body("Username is taken!")
                         );
                     }
                 }
             }
             return Ok(
-                HttpResponse::InternalServerError()
+                HttpResponse::BadRequest()
                     .content_type("text/plain")
-                    .body("database error")
+                    .body("Something went wrong!")
             );
         }
     };
     let rows = query_as::<_, Players>(
-        "SELECT id, username, highscore, last_game FROM players WHERE id = ?"
+        "SELECT id, username, created_at, highscore, last_game FROM players WHERE id = ?"
     )
         .bind(insert.last_insert_id())
         .fetch_optional(&**pool)
@@ -93,7 +96,7 @@ async fn signup(
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
     println!("Result: {:?}", rows);
-    return Ok(HttpResponse::Ok().json(rows))
+    return Ok(HttpResponse::Created().json(rows))
     
 }
 
@@ -109,6 +112,10 @@ async fn main() -> std::io::Result<()> {
         Ok(ip) => println!("Running on: http//{}:8080/", ip),
         Err(e) => println!("Could not get IP: {}", e),
     }
+
+    tokio::spawn(async {
+        start_ws_server().await;
+    });
 
     HttpServer::new(move || {
         App::new()

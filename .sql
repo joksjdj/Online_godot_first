@@ -54,6 +54,8 @@ CREATE TABLE players (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(50) NOT NULL,
+    CONSTRAINT password_not_empty CHECK (password <> ''),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     highscore INT DEFAULT 0,
     last_game INT DEFAULT 0

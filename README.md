@@ -36,3 +36,6 @@ The cors issue was fixed by copilot, I simply copied the error message and fed i
 Prompts:
 - Access to fetch at 'http://alexanderpi:8080/signup' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.
 - toml dependency
+
+14.4m
+6.4m
