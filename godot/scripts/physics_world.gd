@@ -1,18 +1,20 @@
 extends Node3D
 
+@onready var game_tracking = {
+	"enemies_left": 0,
+	"enemies": {},
+}
+
 # PackedScene
 @export var enemy_to_spawn: PackedScene = preload("res://assets/enemy.tscn")
 
 # Global tracking
-@onready var cooldown = 0
-var enemies_left: int = 0
 var spawning_enemies: bool = false
-var score: int = 0
 var frame_passed: int = 0
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass # Replace with function body.
+	pass
 
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
@@ -38,21 +40,40 @@ func _process(delta: float) -> void:
 			
 		enemy.get_node("Head").global_rotation.y = enemy.walk_path.global_rotation.y
 		enemy.global_rotation.y = enemy.get_node("Head").global_rotation.y
+		
+		game_tracking["enemies"][enemy.id] = {
+			"pos": enemy.global_position,
+			"rot": enemy.get_node("Head").global_rotation
+		}
+		
+	for player in get_tree().get_nodes_in_group("player"):
+		game_tracking["enemies"][player.id] = {
+			"pos": player.global_position,
+			"rot": player.get_node("Head").global_rotation
+		}
 			
-	if enemies_left <= 0 and !spawning_enemies:
+	if game_tracking.enemies_left <= 0 and !spawning_enemies:
 		spawning_enemies = true
 		var points = get_node("/root/Main/Area3D/SpawnPoint").get_children()
 		spawn_enemies(points)
 	
+	if frame_passed >= 120:
+		frame_passed = 0
+		print(game_tracking, "\n")
+	
 func spawn_enemies(points):
 	points.shuffle()
 	for spawn in points:
-		if enemies_left >= 7:
+		if game_tracking.enemies_left >= 7:
 			break
-		enemies_left += 1
+		game_tracking.enemies_left += 1
 		var enemy = enemy_to_spawn.instantiate()
 		enemy.add_to_group("enemies")
+		enemy.add_to_group("affected_by_gravity")
+		
 		enemy.walk_path = spawn.get_node("Path3D/PathFollow3D")
+		enemy.id = game_tracking.enemies_left
+		
 		enemy.global_position = spawn.get_node("Path3D/PathFollow3D").global_position
 		enemy.set_collision_layer_value(5, true)
 		spawn.add_child(enemy)

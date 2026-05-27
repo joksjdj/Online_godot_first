@@ -9,6 +9,8 @@ var health = 3
 @onready var detect_player: bool = false
 var follow_player: bool = false
 @onready var walk_path: PathFollow3D
+@onready var id: int
+@onready var game_id
 
 "
 

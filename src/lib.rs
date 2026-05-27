@@ -19,6 +19,9 @@ use serde_json::Value as JSON_Value;
 
 use glam::{Vec3, Quat};
 
+use godot::prelude::*;
+use godot::engine::{Engine, SceneTree, Script};
+
 pub async fn connect_db() -> Result<MySqlPool, sqlx::Error> {
     let start = Instant::now();
     println!("connecting to db...");
@@ -147,59 +150,25 @@ const TICK_RATE: u64 = 60;
 const TICK_TIME: Duration = Duration::from_nanos(1_000_000_000 / TICK_RATE);
 
 pub async fn run_game_loop(lobby_id: String) {
-    let mut last_tick = Instant::now();
+    // 1. Load the scene
+    let scene: Gd<PackedScene> = load("res://scenes/physics_world.tscn");
 
+    // 2. Instantiate it
+    let mut instance = scene.instantiate().expect("Failed to instantiate scene");
+
+    // 3. (Optional) Attach a script dynamically
+    let script: Gd<Script> = load("res://scripts/physics_world.gd");
+    instance.set_script(script);
+
+    // 4. Add to the root scene tree
+    let tree = Engine::singleton().get_main_loop().unwrap();
+    let root = tree.cast::<SceneTree>().get_root().unwrap();
+    root.add_child(instance);
+
+    // 5. Physics loop
     loop {
-        let now = Instant::now();
-        if now - last_tick >= TICK_TIME {
-            let dt = (now - last_tick).as_secs_f32();
-            last_tick = now;
-
-            let lobby = {
-                let json = GLOBAL_JSON.read().await;
-                json[&lobby_id].clone()
-            };
-            let mut lobby = lobby;
-
-            lobby["global_cooldown"] = json!(0.0);
-
-            // gravity vector (same as Godot: (0, -9.8, 0))
-            let gravity = Vec3::new(0.0, -9.8, 0.0);
-
-            if let Some(arr) = lobby["players"].as_object_mut() {
-                for player in arr.values_mut() {
-
-                    let map = {
-                        let json = MAP_JSON.read().await;
-                        json.as_array().unwrap().clone()
-                    };
-                    for obj in map {
-                        println!("{:?}", obj["faces"])
-
-                        let player_pos = vec3_for_math(&player["pos"]);
-
-                        player_pos[1] -= 0.9;
-                    }
-
-                    if player["is_on_floor"] == false {
-                        let usable_vel = vec3_for_math(&player["velocity"]);
-
-                        let vel = usable_vel + gravity * 2.0 * dt;
-                        player["velocity"] = json!(vel);
-
-                        // apply velocity to position
-                        let pos = vec3_for_math(&player["pos"]);
-                        player["pos"] = json!(pos + vel * dt);
-                    }
-
-                }
-                {
-                    let mut json = GLOBAL_JSON.write().await;
-                    json[&lobby_id] = lobby
-                };
-            }
-        }
-        tokio::time::sleep(Duration::from_millis(1)).await;
+        Engine::singleton().iterate(); // runs _physics_process
+        tokio::time::sleep(std::time::Duration::from_millis(16)).await;
     }
 }
 
