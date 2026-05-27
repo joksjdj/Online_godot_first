@@ -1,0 +1,126 @@
+[gd_scene format=3 uid="uid://cjqfnwuvkmgvf"]
+
+[sub_resource type="GDScript" id="GDScript_upa07"]
+resource_name = "Enemy"
+script/source = "extends CharacterBody3D
+
+var health = 3
+@onready var last_attack: int = 0
+@onready var detect_player: bool = false
+var follow_player: bool = false
+@onready var walk_path: PathFollow3D
+
+"
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_upa07"]
+height = 1.467422
+radius = 0.33935547
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fcg7d"]
+albedo_color = Color(0.91806, 0.575202, 0.222449, 1)
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_upa07"]
+radius = 0.4
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5ovji"]
+albedo_color = Color(0.13, 0.9130001, 1, 1)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_0kpn3"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_0weul"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_upa07"]
+viewport_path = NodePath("Sprite3D/SubViewport")
+
+[node name="Enemy" type="CharacterBody3D" unique_id=802950666 groups=["Play_packets"]]
+transform = Transform3D(0.85, 0, 0, 0, 0.85, 0, 0, 0, 0.85, 0, 0, 0)
+slide_on_ceiling = false
+script = SubResource("GDScript_upa07")
+
+[node name="Enemy" type="CollisionShape3D" parent="." unique_id=1823100976]
+transform = Transform3D(1.0000002, 0, 0, 0, 1.0000002, 0, 0, 0, 1.0000002, 0, 1.081, 0)
+shape = SubResource("CylinderShape3D_upa07")
+
+[node name="Body" type="MeshInstance3D" parent="." unique_id=777808813]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.09711, 0)
+material_override = SubResource("StandardMaterial3D_fcg7d")
+gi_mode = 2
+mesh = SubResource("CapsuleMesh_upa07")
+
+[node name="Head" type="Node3D" parent="." unique_id=1046566719]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+
+[node name="Node3D" type="Node3D" parent="Head" unique_id=489205891]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Head/Node3D" unique_id=559417832]
+transform = Transform3D(0.24, 0, 0, 0, -8.742276e-09, 0.24199991, 0, -0.19999997, -1.0578152e-08, 0.1, 0, -0.2)
+material_overlay = SubResource("StandardMaterial3D_5ovji")
+mesh = SubResource("CylinderMesh_0kpn3")
+
+[node name="MeshInstance3D2" type="MeshInstance3D" parent="Head/Node3D" unique_id=1634201806]
+transform = Transform3D(0.24, 0, 0, 0, -8.742276e-09, 0.24199991, 0, -0.19999997, -1.0578152e-08, -0.1, 0, -0.2)
+material_overlay = SubResource("StandardMaterial3D_5ovji")
+mesh = SubResource("CylinderMesh_0kpn3")
+
+[node name="MeshInstance3D3" type="MeshInstance3D" parent="Head/Node3D" unique_id=920305462]
+transform = Transform3D(0.21, 0, 0, 0, 0.165, 0, 0, 0, 0.396, 0, 0.03798902, -0.20041561)
+material_overlay = SubResource("StandardMaterial3D_5ovji")
+mesh = SubResource("BoxMesh_0weul")
+
+[node name="Aim" type="RayCast3D" parent="Head" unique_id=927069417]
+transform = Transform3D(1, 0, 0, 0, -4.371139e-08, -1, 0, 1, -4.371139e-08, 0, 0, 0)
+target_position = Vector3(0, -15, 0)
+
+[node name="Sprite3D" type="Sprite3D" parent="." unique_id=99927184]
+transform = Transform3D(1.0000002, 0, 0, 0, 1.0000002, 0, 0, 0, 1.0000002, 0, 2.376079, 0)
+billboard = 1
+texture = SubResource("ViewportTexture_upa07")
+
+[node name="SubViewport" type="SubViewport" parent="Sprite3D" unique_id=1660850994]
+transparent_bg = true
+size = Vector2i(200, 50)
+
+[node name="Node2D" type="Node2D" parent="Sprite3D/SubViewport" unique_id=180675948]
+
+[node name="heart" type="Node2D" parent="Sprite3D/SubViewport/Node2D" unique_id=1050601182]
+position = Vector2(70, 25)
+scale = Vector2(0.345, 0.345)
+
+[node name="Line2D" type="Line2D" parent="Sprite3D/SubViewport/Node2D/heart" unique_id=620168924]
+position = Vector2(135, -240)
+points = PackedVector2Array(-136, 280, -200, 216, -168, 184, -136, 216, -104, 184, -72, 216)
+closed = true
+default_color = Color(0, 0, 0, 1)
+
+[node name="Polygon2D" type="Polygon2D" parent="Sprite3D/SubViewport/Node2D/heart/Line2D" unique_id=828974833]
+color = Color(1, 0, 0, 1)
+polygon = PackedVector2Array(-196, 216, -136, 276, -76, 216, -104, 188, -136, 220, -168, 188)
+
+[node name="heart2" type="Node2D" parent="Sprite3D/SubViewport/Node2D" unique_id=1701790123]
+position = Vector2(100, 25)
+scale = Vector2(0.345, 0.345)
+
+[node name="Line2D" type="Line2D" parent="Sprite3D/SubViewport/Node2D/heart2" unique_id=1037860778]
+position = Vector2(135, -240)
+points = PackedVector2Array(-136, 280, -200, 216, -168, 184, -136, 216, -104, 184, -72, 216)
+closed = true
+default_color = Color(0, 0, 0, 1)
+
+[node name="Polygon2D" type="Polygon2D" parent="Sprite3D/SubViewport/Node2D/heart2/Line2D" unique_id=906270472]
+color = Color(1, 0, 0, 1)
+polygon = PackedVector2Array(-196, 216, -136, 276, -76, 216, -104, 188, -136, 220, -168, 188)
+
+[node name="heart3" type="Node2D" parent="Sprite3D/SubViewport/Node2D" unique_id=134344556]
+position = Vector2(130, 25)
+scale = Vector2(0.345, 0.345)
+
+[node name="Line2D" type="Line2D" parent="Sprite3D/SubViewport/Node2D/heart3" unique_id=624345809]
+position = Vector2(135, -240)
+points = PackedVector2Array(-136, 280, -200, 216, -168, 184, -136, 216, -104, 184, -72, 216)
+closed = true
+default_color = Color(0, 0, 0, 1)
+
+[node name="Polygon2D" type="Polygon2D" parent="Sprite3D/SubViewport/Node2D/heart3/Line2D" unique_id=971279694]
+color = Color(1, 0, 0, 1)
+polygon = PackedVector2Array(-196, 216, -136, 276, -76, 216, -104, 188, -136, 220, -168, 188)

@@ -175,6 +175,10 @@ pub async fn run_game_loop(lobby_id: String) {
                     };
                     for obj in map {
                         println!("{:?}", obj["faces"])
+
+                        let player_pos = vec3_for_math(&player["pos"]);
+
+                        player_pos[1] -= 0.9;
                     }
 
                     if player["is_on_floor"] == false {
