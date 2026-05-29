@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Godot 3 Server",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/godot3-server",
+            "args": ["--path", ".", "--main-scene", "ServerMain.tscn"],
+            "cwd": "${workspaceFolder}",
+            "externalConsole": true
+        }
+    ]
+}
