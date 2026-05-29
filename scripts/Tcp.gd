@@ -4,7 +4,7 @@ var server := TCP_Server.new()
 var clients = []
 
 func _ready():
-    server.listen(8080)
+    server.listen(8081)
     print("TCP server running")
 
 func _process(delta):
@@ -16,8 +16,11 @@ func _process(delta):
     # Handle existing clients
     for client in clients:
         if client.get_available_bytes() > 0:
-            var msg = client.get_utf8_string(client.get_available_bytes())
-            print("Client says:", msg)
+            var data = client.get_utf8_string(client.get_available_bytes())
+            var msg = JSON.parse(data).result
+            print(msg)
 
             # Echo back
-            client.put_data(("Server received: " + msg).to_utf8())
+            client.put_data(("Server received: " + data).to_utf8())
+
+            
