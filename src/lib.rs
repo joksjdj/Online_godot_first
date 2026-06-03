@@ -1,0 +1,74 @@
+use sqlx::{MySqlPool, mysql::MySqlPoolOptions, FromRow};
+use sqlx::types::chrono::{DateTime, Utc};
+
+use std::time::Instant;
+use std::hash::{DefaultHasher, Hash, Hasher};
+
+use serde::{Serialize, Deserialize};
+
+pub async fn connect_db() -> Result<MySqlPool, sqlx::Error> {
+    let start = Instant::now();
+    println!("connecting to db...");
+
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set");
+
+    let pool = MySqlPoolOptions::new()
+        .max_connections(10)
+        .connect(&database_url)
+        .await?;
+
+    println!(".env: {}", database_url);
+    println!("Connected");
+
+    let duration = start.elapsed();
+    let ms = (duration.as_secs_f64() * 1000.0).ceil() / 1000.0;
+    println!("Time elapsed: {:.3} ms\n", ms);
+
+    Ok(pool)
+    
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct Players {
+    pub id: i64,
+    username: String,
+    created_at: DateTime<Utc>,
+    highscore: i64,
+    last_game: i64,
+}
+
+#[derive(Debug, FromRow, Serialize, Deserialize)]
+pub struct LoginRequest {
+    pub username: String,
+    pub password: String,
+}
+
+pub fn hash_string(unhashed_password: String) -> String {
+
+    let mut hasher = DefaultHasher::new();
+    unhashed_password.hash(&mut hasher);
+
+    let password = hasher.finish().to_string();
+
+    password
+}
+
+pub async fn check_if_user_exists(pool: &MySqlPool, username: String) -> bool {
+    let find_user = sqlx::query(
+            "SELECT username FROM players WHERE username = ?"
+        )
+            .bind(username.clone())
+            .fetch_optional(pool)
+            .await
+            .expect("DB error");
+
+    let user_exists: bool;
+    if find_user.is_none() {
+        user_exists = false;
+    } else {
+        user_exists = true;
+    }
+
+    return user_exists
+}
