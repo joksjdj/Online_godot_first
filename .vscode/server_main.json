@@ -2,11 +2,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Godot 3 Server",
+            "name": "Godot 4 Server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/usr/bin/godot3-server",
-            "args": ["--path", ".", "--main-scene", "ServerMain.tscn"],
+            "program": "/snap/bin/godot4",
+            "args": [
+                "--headless",
+                "--path", ".",
+                "--main-scene", "Main.tscn"
+            ],
             "cwd": "${workspaceFolder}",
             "externalConsole": true
         }

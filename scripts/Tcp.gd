@@ -1,7 +1,10 @@
 extends Node
 
-var server := TCP_Server.new()
-var clients = []
+var world_scene := preload("res://scenes/physics_world.tscn")
+var world_script := preload("res://scripts/physics_world.gd")
+
+var server := TCPServer.new()
+var clients: Array[StreamPeerTCP] = []
 
 func _ready():
     server.listen(8081)
@@ -10,59 +13,77 @@ func _ready():
 func _process(delta):
     if server.is_connection_available():
         var client = server.take_connection()
+        client.set_no_delay(true) # optional but good for real‑time
         clients.append(client)
         print("Client connected")
 
-    # Handle existing clients
     for client in clients:
         if client.get_available_bytes() > 0:
             var data = client.get_utf8_string(client.get_available_bytes())
-            var msg = JSON.parse(data).result
-            print(msg)
 
-            if msg.req == "login":
-                print("login request received")
-                _http_request(client, "/login", JSON.print({"username": msg.username, "password": msg.password}), "login")
+            var msg = JSON.parse_string(data)
+            if msg == null:
+                print("Invalid JSON:", data)
+                return
 
-            if msg.req == "signup":
-                print("signup request received")
-                _http_request(client, "/signup", JSON.print({"username": msg.username, "password": msg.password}), "signup")
-            
+            match msg.req:
+                "login":
+                    print("login request received")
+                    _http_request(
+                        client,
+                        "/login",
+                        JSON.stringify({"username": msg.username, "password": msg.password}),
+                        "login"
+                    )
 
-func _http_request(client, url, body, type):
-    var http_client := HTTPClient.new()
+                "signup":
+                    print("signup request received")
+                    _http_request(
+                        client,
+                        "/signup",
+                        JSON.stringify({"username": msg.username, "password": msg.password}),
+                        "signup"
+                    )
 
-    var err = http_client.connect_to_host("alexanderpi", 8080)
+func _http_request(client: StreamPeerTCP, url: String, body: String, req_type: String):
+    var http := HTTPClient.new()
+
+    var err = http.connect_to_host("alexanderpi", 8080)
     if err != OK:
-        print("Failed to connect")
+        print("Failed to connect:", err)
         return
 
-    while http_client.get_status() in [
+    while http.get_status() in [
         HTTPClient.STATUS_CONNECTING,
         HTTPClient.STATUS_RESOLVING
     ]:
-        http_client.poll()
+        http.poll()
         OS.delay_msec(10)
 
-    http_client.request(
+    http.request(
         HTTPClient.METHOD_POST,
         url,
         ["Content-Type: application/json"],
         body
     )
 
-    while http_client.get_status() == HTTPClient.STATUS_REQUESTING:
-        http_client.poll()
+    while http.get_status() == HTTPClient.STATUS_REQUESTING:
+        http.poll()
         OS.delay_msec(10)
 
-    var response = http_client.read_response_body_chunk()
-    var code = http_client.get_response_code()
+    var response = http.read_response_body_chunk()
+    var code = http.get_response_code()
     var text = response.get_string_from_utf8()
 
     print("Rust says:", code, text)
 
-    responde(client, text, code, type)
+    responde(client, text, code, req_type)
 
-func responde(client, body, status, type):
-    var response = JSON.print({"status": status, "type": type, "body": body})
-    client.put_data(response.to_utf8())
+func responde(client: StreamPeerTCP, body: String, status: int, req_type: String):
+    var response = JSON.stringify({
+        "status": status,
+        "type": req_type,
+        "body": body
+    })
+
+    client.put_data(response.to_utf8_buffer())

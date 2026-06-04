@@ -2,9 +2,14 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Run Godot Server",
+            "label": "Run Godot 4 Server",
             "type": "shell",
-            "command": "godot3-server --path . --main-scene ServerMain.tscn",
+            "command": "/snap/bin/godot4",
+            "args": [
+                "--headless",
+                "--path", ".",
+                "--main-scene", "Main.tscn"
+            ],
             "group": "build",
             "problemMatcher": []
         }
