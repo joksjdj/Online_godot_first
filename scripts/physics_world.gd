@@ -1,9 +1,6 @@
 extends Node3D
 
-@onready var game_tracking = {
-	"enemies_left": 0,
-	"enemies": {},
-}
+@onready var tcp: Node = null
 
 # PackedScene
 @export var enemy_to_spawn: PackedScene = preload("res://assets/enemy.tscn")
@@ -20,7 +17,10 @@ func _ready() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	frame_passed += 1
-	
+
+	if tcp == null:
+		return
+		
 	for path in get_tree().get_nodes_in_group("paths_to_follow"):
 		if path is PathFollow3D:
 			path.progress += 4 * delta
@@ -41,38 +41,38 @@ func _process(delta: float) -> void:
 		enemy.get_node("Head").global_rotation.y = enemy.walk_path.global_rotation.y
 		enemy.global_rotation.y = enemy.get_node("Head").global_rotation.y
 		
-		game_tracking["enemies"][enemy.id] = {
+		tcp.game_tracking["enemies"][enemy.id] = {
 			"pos": enemy.global_position,
 			"rot": enemy.get_node("Head").global_rotation
 		}
 		
 	for player in get_tree().get_nodes_in_group("player"):
-		game_tracking["enemies"][player.id] = {
+		tcp.game_tracking["enemies"][player.id] = {
 			"pos": player.global_position,
 			"rot": player.get_node("Head").global_rotation
 		}
 			
-	if game_tracking.enemies_left <= 0 and !spawning_enemies:
+	if tcp.game_tracking.enemies_left <= 0 and !spawning_enemies:
 		spawning_enemies = true
-		var points = get_node("/root/Main/Area3D/SpawnPoint").get_children()
+		var points = get_node("Area3D/SpawnPoint").get_children()
 		spawn_enemies(points)
 	
 	if frame_passed >= 120:
 		frame_passed = 0
-		print(game_tracking, "\n")
+		print(tcp.game_tracking, "\n")
 	
 func spawn_enemies(points):
 	points.shuffle()
 	for spawn in points:
-		if game_tracking.enemies_left >= 7:
+		if tcp.game_tracking.enemies_left >= 7:
 			break
-		game_tracking.enemies_left += 1
+		tcp.game_tracking.enemies_left += 1
 		var enemy = enemy_to_spawn.instantiate()
 		enemy.add_to_group("enemies")
 		enemy.add_to_group("affected_by_gravity")
 		
 		enemy.walk_path = spawn.get_node("Path3D/PathFollow3D")
-		enemy.id = game_tracking.enemies_left
+		enemy.id = tcp.game_tracking.enemies_left
 		
 		enemy.global_position = spawn.get_node("Path3D/PathFollow3D").global_position
 		enemy.set_collision_layer_value(5, true)

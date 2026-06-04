@@ -1,16 +1,26 @@
 extends Node
 
+@onready var game_tracking = {
+	"enemies_left": 0,
+	"enemies": {},
+}
+var playing_clients: Array[StreamPeerTCP] = []
+var frame_passed: int = 0
+
 var world_scene := preload("res://scenes/physics_world.tscn")
 var world_script := preload("res://scripts/physics_world.gd")
 
 var server := TCPServer.new()
 var clients: Array[StreamPeerTCP] = []
 
+
 func _ready():
     server.listen(8081)
     print("TCP server running")
 
 func _process(delta):
+    frame_passed += 1
+    
     if server.is_connection_available():
         var client = server.take_connection()
         client.set_no_delay(true) # optional but good for real‑time
@@ -44,6 +54,25 @@ func _process(delta):
                         JSON.stringify({"username": msg.username, "password": msg.password}),
                         "signup"
                     )
+                
+                "play":
+                    print("play request received")
+                    var world = world_scene.instantiate()
+                    world.set_script(world_script)
+                    get_tree().root.add_child(world)
+                    world.tcp = self
+                    playing_clients.append(client)
+
+                "exit":
+                    print("exit request received")
+                    if client in playing_clients:
+                        playing_clients.erase(client)
+
+        if frame_passed >= 3:
+            frame_passed = 0
+            if client in playing_clients:
+                var response = JSON.stringify(game_tracking)
+                responde(client, response, "success", "game_update")
 
 func _http_request(client: StreamPeerTCP, url: String, body: String, req_type: String):
     var http := HTTPClient.new()
@@ -79,7 +108,7 @@ func _http_request(client: StreamPeerTCP, url: String, body: String, req_type: S
 
     responde(client, text, code, req_type)
 
-func responde(client: StreamPeerTCP, body: String, status: int, req_type: String):
+func responde(client: StreamPeerTCP, body: String, status, req_type: String):
     var response = JSON.stringify({
         "status": status,
         "type": req_type,
