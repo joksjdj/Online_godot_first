@@ -5,6 +5,7 @@ extends Node
 	"enemies": {},
 }
 var playing_clients: Array[StreamPeerTCP] = []
+var world_active: bool = false
 var frame_passed: int = 0
 
 var world_scene := preload("res://scenes/physics_world.tscn")
@@ -23,7 +24,7 @@ func _process(delta):
     
     if server.is_connection_available():
         var client = server.take_connection()
-        client.set_no_delay(true) # optional but good for real‑time
+        client.set_no_delay(true)
         clients.append(client)
         print("Client connected")
 
@@ -57,10 +58,12 @@ func _process(delta):
                 
                 "play":
                     print("play request received")
-                    var world = world_scene.instantiate()
-                    world.set_script(world_script)
-                    get_tree().root.add_child(world)
-                    world.tcp = self
+                    if !world_active:
+                        world_active = true
+                        var world = world_scene.instantiate()
+                        world.set_script(world_script)
+                        get_tree().root.add_child(world)
+                        world.tcp = self
                     playing_clients.append(client)
 
                 "exit":
@@ -70,7 +73,7 @@ func _process(delta):
 
         if frame_passed >= 3:
             frame_passed = 0
-            if client in playing_clients:
+            if client in playing_clients and game_tracking.enemies.size() >= 7:
                 var response = JSON.stringify(game_tracking)
                 responde(client, response, "success", "game_update")
 

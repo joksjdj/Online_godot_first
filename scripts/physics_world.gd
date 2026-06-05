@@ -11,8 +11,10 @@ var frame_passed: int = 0
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
-	pass
-
+	var spawn_points = get_node("Area3D/SpawnPoint").get_children()
+	for spawn in spawn_points:
+		var path = spawn.get_node("Path3D/PathFollow3D")
+		path.add_to_group("paths_to_follow")
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -32,6 +34,8 @@ func _process(delta: float) -> void:
 			character.move_and_slide()
 			
 	for enemy in get_tree().get_nodes_in_group("enemies"):
+		var enemy_id: String = str(enemy.id)
+
 		var t = enemy.walk_path.global_transform
 		var pos = enemy.global_transform.origin
 		pos.x = t.origin.x
@@ -40,14 +44,18 @@ func _process(delta: float) -> void:
 			
 		enemy.get_node("Head").global_rotation.y = enemy.walk_path.global_rotation.y
 		enemy.global_rotation.y = enemy.get_node("Head").global_rotation.y
-		
-		tcp.game_tracking["enemies"][enemy.id] = {
+
+		var updated_enemy_info = {
 			"pos": enemy.global_position,
 			"rot": enemy.get_node("Head").global_rotation
 		}
 		
+		if !tcp.game_tracking.enemies.has(enemy_id) or tcp.game_tracking.enemies[enemy_id] != updated_enemy_info:
+			tcp.game_tracking["enemies"][enemy_id] = updated_enemy_info
+		
 	for player in get_tree().get_nodes_in_group("player"):
-		tcp.game_tracking["enemies"][player.id] = {
+		var player_id: String = str(player.id)
+		tcp.game_tracking["enemies"][player_id] = {
 			"pos": player.global_position,
 			"rot": player.get_node("Head").global_rotation
 		}
@@ -57,9 +65,6 @@ func _process(delta: float) -> void:
 		var points = get_node("Area3D/SpawnPoint").get_children()
 		spawn_enemies(points)
 	
-	if frame_passed >= 120:
-		frame_passed = 0
-		print(tcp.game_tracking, "\n")
 	
 func spawn_enemies(points):
 	points.shuffle()
@@ -73,8 +78,7 @@ func spawn_enemies(points):
 		
 		enemy.walk_path = spawn.get_node("Path3D/PathFollow3D")
 		enemy.id = tcp.game_tracking.enemies_left
-		
-		enemy.global_position = spawn.get_node("Path3D/PathFollow3D").global_position
+
 		enemy.set_collision_layer_value(5, true)
 		spawn.add_child(enemy)
 		
